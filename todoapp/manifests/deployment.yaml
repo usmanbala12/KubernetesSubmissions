@@ -14,4 +14,7 @@ spec:
     spec:
       containers:
         - name: todoapp
-          image: usmanusman/todoapp
+          image: usmanusman/todoapp:with_html
+          env:
+          - name: PORT
+            value: "4000"
