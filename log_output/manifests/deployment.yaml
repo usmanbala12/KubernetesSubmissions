@@ -12,9 +12,28 @@ spec:
       labels:
         app: log-output
     spec:
+      volumes:
+        - name: logtext
+          emptyDir: {}
       containers:
-        - name: log-output
-          image: usmanusman/log_output:with_status
+        - name: log-output-api
+          image: usmanusman/logoutput-api:v1
+          ports:
+            - containerPort: 4000
+          volumeMounts:
+            - name: logtext
+              mountPath: /usr/src/app/files
           env:
-          - name: PORT
-            value: "4000"
+            - name: PORT
+              value: "4000"
+            - name: FILE_PATH
+              value: "/usr/src/app/files/logtext"
+
+        - name: log-output-generator
+          image: usmanusman/logoutput-generator:v1
+          volumeMounts:
+            - name: logtext
+              mountPath: /usr/src/app/files
+          env:
+            - name: FILE_PATH
+              value: "/usr/src/app/files/logtext"
