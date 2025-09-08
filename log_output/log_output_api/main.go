@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,7 +9,6 @@ import (
 )
 
 func main() {
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -29,22 +27,35 @@ func main() {
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "text/plain")
 
-	filePath := os.Getenv("FILE_PATH")
-	if filePath == "" {
-		filePath = "../logoutput.txt"
+	logPath := os.Getenv("LOG_PATH")
+	if logPath == "" {
+		logPath = "../logoutput.txt"
 	}
 
-	data, err := os.ReadFile(filePath)
+	pingPath := os.Getenv("PING_PATH")
+	if pingPath == "" {
+		pingPath = "../pingoutput.txt"
+	}
+
+	// Read log file
+	logData, err := os.ReadFile(logPath)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": fmt.Sprintf("Failed to read log file: %v", err),
-		})
+		http.Error(w, fmt.Sprintf("Failed to read log file: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Respond with JSON containing the log content
-	json.NewEncoder(w).Encode(string(data))
+	// Read ping file
+	pingData, err := os.ReadFile(pingPath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to read ping file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Format output: first log line, then ping info
+	combined := fmt.Sprintf("%s\n%s", string(logData), string(pingData))
+
+	// Write directly as plain text
+	w.Write([]byte(combined))
 }

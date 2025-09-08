@@ -17,14 +17,6 @@ func main() {
 	randomString := uuid.New().String()
 	fmt.Printf("Application started. Random string: %s\n", randomString)
 
-	// Open file once (append mode)
-	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return
-	}
-	defer f.Close()
-
 	for {
 		currentStatus := fmt.Sprintf(
 			"%s : %s\n",
@@ -32,11 +24,20 @@ func main() {
 			randomString,
 		)
 
-		_, err := f.WriteString(currentStatus)
+		// Open file in truncate mode
+		f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			fmt.Println("Error writing to file:", err)
+			fmt.Println("Error opening file:", err)
 			return
 		}
+
+		_, err = f.WriteString(currentStatus)
+		if err != nil {
+			fmt.Println("Error writing to file:", err)
+			f.Close()
+			return
+		}
+		f.Close()
 
 		fmt.Print("Wrote: ", currentStatus) // optional console log
 		time.Sleep(5 * time.Second)

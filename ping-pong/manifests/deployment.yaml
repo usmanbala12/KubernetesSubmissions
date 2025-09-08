@@ -12,9 +12,18 @@ spec:
       labels:
         app: ping-pong
     spec:
+      volumes:
+        - name: logtext
+          persistentVolumeClaim:
+            claimName: log-claim
       containers:
         - name: ping-pong
-          image: usmanusman/pingpong:v2
+          image: usmanusman/pingpong:v3
+          volumeMounts:
+            - name: logtext
+              mountPath: /usr/src/app/files
           env:
           - name: PORT
             value: "4000"
+          - name: FILE_PATH
+            value: "/usr/src/app/files/pingtext"
