@@ -12,9 +12,18 @@ spec:
       labels:
         app: todoapp
     spec:
+      volumes:
+        - name: picsum-image
+          persistentVolumeClaim:
+            claimName: log-claim
       containers:
         - name: todoapp
-          image: usmanusman/todoapp:with_html
+          image: usmanusman/todoapp:with_image
+          volumeMounts:
+            - name: picsum-image
+              mountPath: /usr/src/app/files
           env:
           - name: PORT
             value: "4000"
+          - name: STATIC_PATH
+            value: "/usr/src/app/files/static"
