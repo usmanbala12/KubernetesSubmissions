@@ -164,6 +164,22 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 			outline: 2px solid #fff;
 			background: #fff;
 		}
+		#descriptionInput {
+			width: 100%;
+			padding: 0.75rem;
+			border: none;
+			border-radius: 0.5rem;
+			font-size: 1rem;
+			background: rgba(255, 255, 255, 0.9);
+			color: #333;
+			margin-top: 0.5rem;
+			resize: vertical;
+			min-height: 60px;
+		}
+		#descriptionInput:focus {
+			outline: 2px solid #fff;
+			background: #fff;
+		}
 		#sendButton {
 			padding: 0.75rem 1.5rem;
 			border: none;
@@ -211,18 +227,65 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 			backdrop-filter: blur(10px);
 		}
 		.todo-text {
-			margin: 0;
+			margin: 0 0 0.5rem 0;
 			font-size: 1rem;
 			line-height: 1.4;
+			font-weight: 600;
 		}
-		.image {
-			margin-top: 2rem;
+		.todo-description {
+			margin: 0;
+			font-size: 0.9rem;
+			line-height: 1.3;
+			opacity: 0.8;
+		}
+		.todo-meta {
+			font-size: 0.8rem;
+			opacity: 0.6;
+			margin-top: 0.5rem;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		.todo-id {
+			background: rgba(255, 255, 255, 0.2);
+			padding: 0.2rem 0.5rem;
+			border-radius: 0.3rem;
+			font-family: 'Courier New', monospace;
+		}
+		.loading {
 			text-align: center;
+			opacity: 0.7;
+			font-style: italic;
 		}
-		.image img {
-			max-width: 100%;
+		.error {
+			background: rgba(255, 87, 34, 0.2);
+			color: #ff5722;
+			padding: 1rem;
 			border-radius: 0.5rem;
-			box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+			margin: 1rem 0;
+			border-left: 4px solid #ff5722;
+		}
+		.success {
+			background: rgba(76, 175, 80, 0.2);
+			color: #4caf50;
+			padding: 1rem;
+			border-radius: 0.5rem;
+			margin: 1rem 0;
+			border-left: 4px solid #4caf50;
+		}
+		.refresh-btn {
+			background: rgba(255, 255, 255, 0.2);
+			color: #fff;
+			border: 1px solid rgba(255, 255, 255, 0.3);
+			padding: 0.5rem 1rem;
+			border-radius: 0.5rem;
+			cursor: pointer;
+			font-size: 0.9rem;
+			margin-left: 1rem;
+			transition: background 0.2s;
+		}
+		.refresh-btn:hover {
+			background: rgba(255, 255, 255, 0.3);
 		}
 	</style>
 </head>
@@ -230,7 +293,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 	<div class="container">
 		<h1>🚀 Todo App</h1>
 		<p class="subtitle">Manage tasks, boost productivity, and stay organized.</p>
-		<div class="version">v1.0.0</div>
+		<div class="version">v1.0.0 - Connected to Backend</div>
 		
 		<div class="todo-input-section">
 			<h2>Add New Todo</h2>
@@ -243,42 +306,42 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 				/>
 				<button id="sendButton">Send</button>
 			</div>
+			<textarea 
+				id="descriptionInput" 
+				placeholder="Optional description..."
+				maxlength="500"
+			></textarea>
 			<div class="char-counter" id="charCounter">0/140</div>
 		</div>
 
+		<div id="messageArea"></div>
+
 		<div class="todos-section">
-			<h2>Your Todos</h2>
-			<ul class="todo-list">
-				<li class="todo-item">
-					<p class="todo-text">Complete the quarterly report by Friday</p>
-				</li>
-				<li class="todo-item">
-					<p class="todo-text">Buy groceries for the week</p>
-				</li>
-				<li class="todo-item">
-					<p class="todo-text">Schedule dentist appointment</p>
-				</li>
-				<li class="todo-item">
-					<p class="todo-text">Review and respond to pending emails</p>
-				</li>
-				<li class="todo-item">
-					<p class="todo-text">Plan weekend hiking trip</p>
-				</li>
-				<li class="todo-item">
-					<p class="todo-text">Update portfolio website with new projects</p>
-				</li>
-			</ul>
+			<h2>
+				Your Todos 
+				<button class="refresh-btn" id="refreshButton">🔄 Refresh</button>
+			</h2>
+			<div id="todoContainer">
+				<div class="loading">Loading todos...</div>
+			</div>
 		</div>
 
 		<div class="image">
 			<img src="/image" alt="Random Hourly Image" loading="lazy"/>
 		</div>
+
 	</div>
 
 	<script>
+		const API_BASE_URL = 'http://localhost:8081';
+		
 		const todoInput = document.getElementById('todoInput');
+		const descriptionInput = document.getElementById('descriptionInput');
 		const sendButton = document.getElementById('sendButton');
 		const charCounter = document.getElementById('charCounter');
+		const todoContainer = document.getElementById('todoContainer');
+		const messageArea = document.getElementById('messageArea');
+		const refreshButton = document.getElementById('refreshButton');
 
 		function updateCharCounter() {
 			const length = todoInput.value.length;
@@ -298,25 +361,149 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		todoInput.addEventListener('input', updateCharCounter);
-		
-		// Initialize
-		updateCharCounter();
+		function showMessage(message, type = 'success') {
+			messageArea.innerHTML = '<div class="' + type + '">' + message + '</div>';
+			setTimeout(() => {
+				messageArea.innerHTML = '';
+			}, 3000);
+		}
 
-		sendButton.addEventListener('click', function() {
-			const todoText = todoInput.value.trim();
-			if (todoText && todoText.length <= 140) {
-				alert('Todo would be sent: ' + todoText);
-				// TODO: Actually send the todo to the backend
+		function formatDate(dateString) {
+			const date = new Date(dateString);
+			return date.toLocaleString();
+		}
+
+		async function loadTodos() {
+			try {
+				todoContainer.innerHTML = '<div class="loading">Loading todos...</div>';
+				
+				const response = await fetch(API_BASE_URL + '/todos');
+				if (!response.ok) {
+					throw new Error('Failed to fetch todos: ' + response.statusText);
+				}
+				
+				const todos = await response.json();
+				
+				if (todos.length === 0) {
+					todoContainer.innerHTML = '<div class="loading">No todos yet. Add your first one!</div>';
+					return;
+				}
+				
+				const todoList = document.createElement('ul');
+				todoList.className = 'todo-list';
+				
+				todos.sort((a, b) => b.id - a.id);
+				
+				todos.forEach(todo => {
+					const todoItem = document.createElement('li');
+					todoItem.className = 'todo-item';
+					
+					todoItem.innerHTML =
+						'<p class="todo-text">' + escapeHtml(todo.title) + '</p>' +
+						(todo.description ? '<p class="todo-description">' + escapeHtml(todo.description) + '</p>' : '') +
+						'<div class="todo-meta">' +
+							'<span class="todo-id">#' + todo.id + '</span>' +
+							'<span>Created: ' + formatDate(todo.created_at) + '</span>' +
+						'</div>';
+					
+					todoList.appendChild(todoItem);
+				});
+				
+				todoContainer.innerHTML = '';
+				todoContainer.appendChild(todoList);
+				
+			} catch (error) {
+				console.error('Error loading todos:', error);
+				todoContainer.innerHTML = '<div class="error">Failed to load todos: ' + error.message + '</div>';
 			}
-		});
+		}
 
-		// Allow Enter key to send todo
+		async function createTodo() {
+			const title = todoInput.value.trim();
+			const description = descriptionInput.value.trim();
+			
+			if (!title || title.length > 140) {
+				showMessage('Please enter a valid title (1-140 characters)', 'error');
+				return;
+			}
+
+			try {
+				sendButton.disabled = true;
+				sendButton.textContent = 'Sending...';
+
+				const response = await fetch(API_BASE_URL + '/todos', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						title: title,
+						description: description || undefined
+					})
+				});
+				
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error("Failed to create todo: " + errorText);
+				}
+				
+				const newTodo = await response.json();
+				
+				// Clear inputs
+				todoInput.value = '';
+				descriptionInput.value = '';
+				updateCharCounter();
+				
+				showMessage("Todo " +newTodo.title+ " created successfully!", 'success');
+				
+				// Reload todos to show the new one
+				await loadTodos();
+				
+			} catch (error) {
+				console.error('Error creating todo:', error);
+				showMessage("Failed to create todo: " + error.message, 'error');
+			} finally {
+				sendButton.disabled = false;
+				sendButton.textContent = 'Send';
+				updateCharCounter(); // This will re-enable if input is valid
+			}
+		}
+
+		function escapeHtml(text) {
+			const div = document.createElement('div');
+			div.textContent = text;
+			return div.innerHTML;
+		}
+
+		// Event listeners
+		todoInput.addEventListener('input', updateCharCounter);
+		sendButton.addEventListener('click', createTodo);
+		refreshButton.addEventListener('click', loadTodos);
+
+		// Allow Enter key to send todo (only from title input)
 		todoInput.addEventListener('keypress', function(e) {
 			if (e.key === 'Enter' && !sendButton.disabled) {
-				sendButton.click();
+				createTodo();
 			}
 		});
+
+		// Initialize
+		updateCharCounter();
+		loadTodos();
+
+		// Check if backend is accessible
+		fetch(API_BASE_URL +"/health")
+			.then(response => {
+				if (response.ok) {
+					console.log('✅ Backend connection successful');
+				} else {
+					throw new Error('Backend health check failed');
+				}
+			})
+			.catch(error => {
+				console.warn('⚠️ Backend not accessible:', error);
+				showMessage('Warning: Cannot connect to backend. Make sure the Go service is running on localhost:8080', 'error');
+			});
 	</script>
 </body>
 </html>`
