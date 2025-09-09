@@ -18,7 +18,7 @@ spec:
             claimName: log-claim
       containers:
         - name: log-output-api
-          image: usmanusman/logoutput-api:v2
+          image: usmanusman/logoutput-api:v3
           ports:
             - containerPort: 4000
           volumeMounts:
@@ -29,8 +29,8 @@ spec:
               value: "4000"
             - name: LOG_PATH
               value: "/usr/src/app/files/logtext"
-            - name: PING_PATH
-              value: "/usr/src/app/files/pingtext"
+            # - name: PING_PATH
+            #   value: "/usr/src/app/files/pingtext"
 
         - name: log-output-generator
           image: usmanusman/logoutput-generator:v2

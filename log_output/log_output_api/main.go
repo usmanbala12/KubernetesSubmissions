@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -34,9 +36,23 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		logPath = "../logoutput.txt"
 	}
 
-	pingPath := os.Getenv("PING_PATH")
-	if pingPath == "" {
-		pingPath = "../pingoutput.txt"
+	// pingPath := os.Getenv("PING_PATH")
+	// if pingPath == "" {
+	// 	pingPath = "../pingoutput.txt"
+	// }
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Get("http://pingpong-svc:2346/pings")
+	if err != nil {
+		fmt.Printf("failed to ping count: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	// Read log file
@@ -46,15 +62,20 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read ping file
-	pingData, err := os.ReadFile(pingPath)
+	// // Read ping file
+	// pingData, err := os.ReadFile(pingPath)
+	// if err != nil {
+	// 	http.Error(w, fmt.Sprintf("Failed to read ping file: %v", err), http.StatusInternalServerError)
+	// 	return
+	// }
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to read ping file: %v", err), http.StatusInternalServerError)
-		return
+		panic(err)
 	}
 
 	// Format output: first log line, then ping info
-	combined := fmt.Sprintf("%s\n%s", string(logData), string(pingData))
+	combined := fmt.Sprintf("%s\nPing / Pongs: %s", string(logData), string(body))
 
 	// Write directly as plain text
 	w.Write([]byte(combined))
