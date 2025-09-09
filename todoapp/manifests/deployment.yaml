@@ -18,7 +18,7 @@ spec:
             claimName: log-claim
       containers:
         - name: todoapp
-          image: usmanusman/todoapp:with_image
+          image: usmanusman/todoapp:v1
           volumeMounts:
             - name: picsum-image
               mountPath: /usr/src/app/files

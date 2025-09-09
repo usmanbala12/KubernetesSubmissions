@@ -111,30 +111,29 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 			background: linear-gradient(135deg, #667eea, #764ba2);
 			color: #fff;
 			margin: 0;
-			padding: 0;
-			display: flex;
-			justify-content: center;
-			align-items: center;
+			padding: 20px;
 			min-height: 100vh;
-			text-align: center;
 		}
 		.container {
+			max-width: 600px;
+			margin: 0 auto;
 			background: rgba(0, 0, 0, 0.4);
-			padding: 2rem 3rem;
+			padding: 2rem;
 			border-radius: 1rem;
 			box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-			max-width: 500px;
 		}
 		h1 {
 			font-size: 2.5rem;
 			margin-bottom: 0.5rem;
+			text-align: center;
 		}
-		p {
+		.subtitle {
 			font-size: 1.1rem;
-			margin: 0.5rem 0;
+			margin: 0.5rem 0 2rem 0;
+			text-align: center;
+			opacity: 0.9;
 		}
 		.version {
-			margin-top: 1rem;
 			display: inline-block;
 			background: #fff;
 			color: #764ba2;
@@ -142,11 +141,85 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 			border-radius: 999px;
 			font-weight: bold;
 			font-size: 0.9rem;
+			margin-bottom: 2rem;
+		}
+		.todo-input-section {
+			margin-bottom: 2rem;
+		}
+		.input-container {
+			display: flex;
+			gap: 0.5rem;
+			margin-bottom: 0.5rem;
+		}
+		#todoInput {
+			flex: 1;
+			padding: 0.75rem;
+			border: none;
+			border-radius: 0.5rem;
+			font-size: 1rem;
+			background: rgba(255, 255, 255, 0.9);
+			color: #333;
+		}
+		#todoInput:focus {
+			outline: 2px solid #fff;
+			background: #fff;
+		}
+		#sendButton {
+			padding: 0.75rem 1.5rem;
+			border: none;
+			border-radius: 0.5rem;
+			background: #fff;
+			color: #764ba2;
+			font-weight: bold;
+			cursor: pointer;
+			transition: transform 0.2s;
+		}
+		#sendButton:hover {
+			transform: translateY(-1px);
+		}
+		#sendButton:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+			transform: none;
+		}
+		.char-counter {
+			font-size: 0.9rem;
+			text-align: right;
+			margin-top: 0.25rem;
+			opacity: 0.8;
+		}
+		.char-counter.warning {
+			color: #ffeb3b;
+		}
+		.char-counter.error {
+			color: #ff5722;
+		}
+		.todos-section h2 {
+			margin-bottom: 1rem;
+			font-size: 1.5rem;
+		}
+		.todo-list {
+			list-style: none;
+			padding: 0;
+		}
+		.todo-item {
+			background: rgba(255, 255, 255, 0.1);
+			margin: 0.5rem 0;
+			padding: 0.75rem 1rem;
+			border-radius: 0.5rem;
+			border-left: 4px solid #fff;
+			backdrop-filter: blur(10px);
+		}
+		.todo-text {
+			margin: 0;
+			font-size: 1rem;
+			line-height: 1.4;
 		}
 		.image {
-			margin-top: 1.5rem;
+			margin-top: 2rem;
+			text-align: center;
 		}
-		img {
+		.image img {
 			max-width: 100%;
 			border-radius: 0.5rem;
 			box-shadow: 0 6px 12px rgba(0,0,0,0.3);
@@ -155,14 +228,96 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 </head>
 <body>
 	<div class="container">
-		<h1>🚀 Todo App API</h1>
-		<p>Welcome to your Todo App backend!</p>
-		<p>Manage tasks, boost productivity, and stay organized.</p>
+		<h1>🚀 Todo App</h1>
+		<p class="subtitle">Manage tasks, boost productivity, and stay organized.</p>
 		<div class="version">v1.0.0</div>
+		
+		<div class="todo-input-section">
+			<h2>Add New Todo</h2>
+			<div class="input-container">
+				<input 
+					type="text" 
+					id="todoInput" 
+					placeholder="What needs to be done?"
+					maxlength="140"
+				/>
+				<button id="sendButton">Send</button>
+			</div>
+			<div class="char-counter" id="charCounter">0/140</div>
+		</div>
+
+		<div class="todos-section">
+			<h2>Your Todos</h2>
+			<ul class="todo-list">
+				<li class="todo-item">
+					<p class="todo-text">Complete the quarterly report by Friday</p>
+				</li>
+				<li class="todo-item">
+					<p class="todo-text">Buy groceries for the week</p>
+				</li>
+				<li class="todo-item">
+					<p class="todo-text">Schedule dentist appointment</p>
+				</li>
+				<li class="todo-item">
+					<p class="todo-text">Review and respond to pending emails</p>
+				</li>
+				<li class="todo-item">
+					<p class="todo-text">Plan weekend hiking trip</p>
+				</li>
+				<li class="todo-item">
+					<p class="todo-text">Update portfolio website with new projects</p>
+				</li>
+			</ul>
+		</div>
+
 		<div class="image">
 			<img src="/image" alt="Random Hourly Image" loading="lazy"/>
 		</div>
 	</div>
+
+	<script>
+		const todoInput = document.getElementById('todoInput');
+		const sendButton = document.getElementById('sendButton');
+		const charCounter = document.getElementById('charCounter');
+
+		function updateCharCounter() {
+			const length = todoInput.value.length;
+			charCounter.textContent = length + '/140';
+			
+			// Remove existing classes
+			charCounter.classList.remove('warning', 'error');
+			
+			if (length >= 140) {
+				charCounter.classList.add('error');
+				sendButton.disabled = true;
+			} else if (length >= 120) {
+				charCounter.classList.add('warning');
+				sendButton.disabled = false;
+			} else {
+				sendButton.disabled = length === 0;
+			}
+		}
+
+		todoInput.addEventListener('input', updateCharCounter);
+		
+		// Initialize
+		updateCharCounter();
+
+		sendButton.addEventListener('click', function() {
+			const todoText = todoInput.value.trim();
+			if (todoText && todoText.length <= 140) {
+				alert('Todo would be sent: ' + todoText);
+				// TODO: Actually send the todo to the backend
+			}
+		});
+
+		// Allow Enter key to send todo
+		todoInput.addEventListener('keypress', function(e) {
+			if (e.key === 'Enter' && !sendButton.disabled) {
+				sendButton.click();
+			}
+		});
+	</script>
 </body>
 </html>`
 
