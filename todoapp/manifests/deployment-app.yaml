@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: project
   name: todoapp-dep
 spec:
   replicas: 1
