@@ -162,9 +162,6 @@ func main() {
 	}))
 
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
 
 	fmt.Printf("Todo backend service starting on port %s\n", port)
 	fmt.Printf("Endpoints:\n")

@@ -25,14 +25,8 @@ var (
 func main() {
 	// Get port from environment variable, default to 8080
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
 
 	staticPath = os.Getenv("STATIC_PATH")
-	if staticPath == "" {
-		staticPath = "static"
-	}
 
 	// Ensure static directory exists
 	err := os.MkdirAll(staticPath, 0755)

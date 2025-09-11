@@ -21,3 +21,4 @@
 - [2.2](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.2/todoapp)
 - [2.3](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.3)
 - [2.4](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.4/todoapp)
+- [2.5](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.5/log_output)
