@@ -1,3 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: project
+  name: todoapp-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,7 +29,7 @@ spec:
       volumes:
         - name: picsum-image
           persistentVolumeClaim:
-            claimName: log-claim
+            claimName: todoapp-pvc
       containers:
         - name: todoapp
           image: usmanusman/todoapp:v3

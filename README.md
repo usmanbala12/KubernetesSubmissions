@@ -23,3 +23,4 @@
 - [2.4](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.4/todoapp)
 - [2.5](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.5/log_output)
 - [2.6](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.6/log_output)
+- [2.7](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.7/ping-pong)
