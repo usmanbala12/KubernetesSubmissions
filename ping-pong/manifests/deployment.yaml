@@ -19,12 +19,14 @@ spec:
             claimName: log-claim
       containers:
         - name: ping-pong
-          image: usmanusman/pingpong:v4
+          image: usmanusman/pingpong:v5
           volumeMounts:
             - name: logtext
               mountPath: /usr/src/app/files
           env:
           - name: PORT
             value: "4000"
+          - name: DATABASE_URL
+            value: "postgresql://postgres:postgres@postgres-service:5432/postgres?sslmode=disable"
           # - name: FILE_PATH
           #   value: "/usr/src/app/files/pingtext"

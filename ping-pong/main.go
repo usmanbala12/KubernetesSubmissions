@@ -1,52 +1,83 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
 	"sync/atomic"
+
+	_ "github.com/lib/pq"
 )
 
-var counter uint64 // in-memory counter
-// var filePath string
+var counter uint64
+var db *sql.DB
+
+func initDB() {
+	connStr := os.Getenv("DATABASE_URL")
+
+	var err error
+	db, err = sql.Open("postgres", connStr)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create table if it doesn't exist
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS counter (
+			id SERIAL PRIMARY KEY,
+			value BIGINT NOT NULL
+		);
+	`)
+	if err != nil {
+		panic(err)
+	}
+
+	// Ensure one row exists
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM counter").Scan(&count)
+	if err != nil {
+		panic(err)
+	}
+	if count == 0 {
+		_, err = db.Exec("INSERT INTO counter (value) VALUES (0)")
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Load current value into memory
+	err = db.QueryRow("SELECT value FROM counter WHERE id = 1").Scan(&counter)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func handlePing(w http.ResponseWriter, r *http.Request) {
-	// increment atomically to avoid race conditions
-	count := atomic.AddUint64(&counter, 1) - 1
+	// increment atomically
+	newCount := atomic.AddUint64(&counter, 1)
 
-	// Write the current count to file (replacing old content)
-	// f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	// if err != nil {
-	// 	http.Error(w, fmt.Sprintf("Failed to open file: %v", err), http.StatusInternalServerError)
-	// 	return
-	// }
-	// defer f.Close()
+	// persist to DB
+	_, err := db.Exec("UPDATE counter SET value = $1 WHERE id = 1", newCount)
+	if err != nil {
+		http.Error(w, "DB update failed", http.StatusInternalServerError)
+		return
+	}
 
-	// content := fmt.Sprintf("Ping / Pongs: %d", count)
-	// _, err = f.WriteString(content)
-	// if err != nil {
-	// 	http.Error(w, fmt.Sprintf("Failed to write file: %v", err), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// Respond to client
-	fmt.Fprintf(w, "pong %d", count)
+	fmt.Fprintf(w, "pong %d", newCount)
 }
 
 func handlePings(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%d", counter)
+	fmt.Fprintf(w, "%d", atomic.LoadUint64(&counter))
 }
 
 func main() {
-	// filePath = os.Getenv("FILE_PATH")
-	// if filePath == "" {
-	// 	filePath = "../pingoutput.txt"
-	// }
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
+
+	initDB()
 
 	http.HandleFunc("/pingpong", handlePing)
 	http.HandleFunc("/pings", handlePings)
