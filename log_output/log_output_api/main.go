@@ -36,6 +36,13 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		logPath = "../logoutput.txt"
 	}
 
+	configPath := os.Getenv("CONFIG_FILE_PATH")
+	if configPath == "" {
+		configPath = "../information.txt"
+	}
+
+	message := os.Getenv("MESSAGE")
+
 	// pingPath := os.Getenv("PING_PATH")
 	// if pingPath == "" {
 	// 	pingPath = "../pingoutput.txt"
@@ -62,6 +69,13 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Read config file
+	configData, err := os.ReadFile(configPath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to read log file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	// // Read ping file
 	// pingData, err := os.ReadFile(pingPath)
 	// if err != nil {
@@ -75,7 +89,7 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Format output: first log line, then ping info
-	combined := fmt.Sprintf("%s\nPing / Pongs: %s", string(logData), string(body))
+	combined := fmt.Sprintf("file content: %s\n env variable: MESSAGE=%s\n %s\nPing / Pongs: %s", string(configData), message, string(logData), string(body))
 
 	// Write directly as plain text
 	w.Write([]byte(combined))

@@ -1,3 +1,34 @@
+---
+# ConfigMap definition
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: exercises
+  name: log-output-config
+data:
+  # File content that will be mounted as information.txt
+  information.txt: |
+    this text is from file
+  # Environment variable
+  MESSAGE: "hello world"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: exercises
+  name: log-claim # name of the volume claim, this will be used in the deployment
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Updated Deployment with ConfigMap integration
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,22 +48,39 @@ spec:
         - name: logtext
           persistentVolumeClaim:
             claimName: log-claim
+        # New volume for ConfigMap file
+        - name: config-volume
+          configMap:
+            name: log-output-config
+            items:
+            - key: information.txt
+              path: information.txt
       containers:
         - name: log-output-api
-          image: usmanusman/logoutput-api:v3
+          image: usmanusman/logoutput-api:v4
           ports:
             - containerPort: 4000
           volumeMounts:
             - name: logtext
               mountPath: /usr/src/app/files
+            # Mount ConfigMap file
+            - name: config-volume
+              mountPath: /usr/src/app/config
+              readOnly: true
           env:
             - name: PORT
               value: "4000"
             - name: LOG_PATH
               value: "/usr/src/app/files/logtext"
-            # - name: PING_PATH
-            #   value: "/usr/src/app/files/pingtext"
-
+            # Environment variable from ConfigMap
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-config
+                  key: MESSAGE
+            # Path to the config file
+            - name: CONFIG_FILE_PATH
+              value: "/usr/src/app/config/information.txt"
         - name: log-output-generator
           image: usmanusman/logoutput-generator:v2
           volumeMounts:
