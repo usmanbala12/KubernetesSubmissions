@@ -25,3 +25,7 @@
 - [2.6](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.6/log_output)
 - [2.7](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.7/ping-pong)
 - [2.8](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.8/todoapp)
+- [2.9](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.9/todoapp/manifests)
+- [2.10](https://github.com/usmanbala12/KubernetesSubmissions/tree/2.10/todoapp/todo-backend)
+
+### chapter 4
