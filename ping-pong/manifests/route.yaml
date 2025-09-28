@@ -1,0 +1,29 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  namespace: exercises
+  name: pingpong-httproute
+spec:
+  parentRefs:
+  - name: my-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /pingpong
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: pingpong-svc
+      port: 80
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /pings
+    backendRefs:
+    - name: pingpong-svc
+      port: 80

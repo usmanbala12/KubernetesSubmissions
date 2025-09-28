@@ -19,7 +19,7 @@ spec:
             claimName: log-claim
       containers:
         - name: ping-pong
-          image: usmanusman/pingpong:v6
+          image: usmanusman/pingpong:v7
           volumeMounts:
             - name: logtext
               mountPath: /usr/src/app/files

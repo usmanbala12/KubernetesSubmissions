@@ -53,7 +53,7 @@ func initDB() {
 	}
 }
 
-func handlePing(w http.ResponseWriter, r *http.Request) {
+func handlePingPong(w http.ResponseWriter, r *http.Request) {
 	// increment atomically
 	newCount := atomic.AddUint64(&counter, 1)
 
@@ -71,11 +71,6 @@ func handlePings(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%d", atomic.LoadUint64(&counter))
 }
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Log Output Service - OK\n")
-}
-
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -84,8 +79,7 @@ func main() {
 
 	initDB()
 
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/pingpong", handlePing)
+	http.HandleFunc("/", handlePingPong)
 	http.HandleFunc("/pings", handlePings)
 
 	fmt.Printf("Server started on port %s\n", port)
