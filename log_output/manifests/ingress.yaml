@@ -14,18 +14,18 @@ spec:
           service:
             name: pingpong-svc
             port:
-              number: 2346
+              number: 80
       - path: /pings
         pathType: Prefix
         backend:
           service:
             name: pingpong-svc
             port:
-              number: 2346
+              number: 80
       - path: /
         pathType: Prefix
         backend:
           service:
             name: logoutput-svc
             port:
-              number: 2345
+              number: 80

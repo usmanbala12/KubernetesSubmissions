@@ -17,15 +17,14 @@ data:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  namespace: exercises
-  name: log-claim # name of the volume claim, this will be used in the deployment
+  name: log-claim-logoutput
 spec:
-  storageClassName: local-path
-  accessModes:
-    - ReadWriteOnce
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: standard-rwo
   resources:
     requests:
-      storage: 1Gi
+      storage: 100Mi
+
 
 ---
 # Updated Deployment with ConfigMap integration
@@ -47,7 +46,7 @@ spec:
       volumes:
         - name: logtext
           persistentVolumeClaim:
-            claimName: log-claim
+            claimName: log-claim-logoutput
         # New volume for ConfigMap file
         - name: config-volume
           configMap:
@@ -57,7 +56,7 @@ spec:
               path: information.txt
       containers:
         - name: log-output-api
-          image: usmanusman/logoutput-api:v4
+          image: usmanusman/logoutput-api:v7
           ports:
             - containerPort: 4000
           volumeMounts:

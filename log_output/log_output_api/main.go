@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -21,11 +22,17 @@ func main() {
 	fmt.Printf("Application started. Random string: %s\n", randomString)
 
 	// Expose an HTTP endpoint for current status
+	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/status", statusHandler)
 	fmt.Printf("Server started on port %s\n", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		panic(err)
 	}
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Log Output Service - OK\n")
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,54 +50,58 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 
 	message := os.Getenv("MESSAGE")
 
-	// pingPath := os.Getenv("PING_PATH")
-	// if pingPath == "" {
-	// 	pingPath = "../pingoutput.txt"
-	// }
-
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
-	resp, err := client.Get("http://pingpong-svc:2346/pings")
+	// --- Call pingpong service ---
+	resp, err := client.Get("http://pingpong-svc:80/pings")
 	if err != nil {
-		fmt.Printf("failed to ping count: %w", err)
+		slog.Error("failed to call pingpong service",
+			"error", err,
+			"service", "pingpong-svc",
+			"url", "http://pingpong-svc:80/pings",
+		)
+		http.Error(w, "failed to reach pingpong service", http.StatusBadGateway)
+		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	// Read log file
-	logData, err := os.ReadFile(logPath)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to read log file: %v", err), http.StatusInternalServerError)
+		slog.Warn("unexpected response from pingpong service",
+			"status", resp.StatusCode,
+		)
+		http.Error(w, fmt.Sprintf("unexpected status: %d", resp.StatusCode), resp.StatusCode)
 		return
 	}
-
-	// Read config file
-	configData, err := os.ReadFile(configPath)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to read log file: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// // Read ping file
-	// pingData, err := os.ReadFile(pingPath)
-	// if err != nil {
-	// 	http.Error(w, fmt.Sprintf("Failed to read ping file: %v", err), http.StatusInternalServerError)
-	// 	return
-	// }
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		slog.Error("failed to read pingpong response", "error", err)
+		http.Error(w, "failed to read response", http.StatusInternalServerError)
+		return
 	}
 
-	// Format output: first log line, then ping info
-	combined := fmt.Sprintf("file content: %s\n env variable: MESSAGE=%s\n %s\nPing / Pongs: %s", string(configData), message, string(logData), string(body))
+	// --- Read log file ---
+	logData, err := os.ReadFile(logPath)
+	if err != nil {
+		slog.Error("failed to read log file", "path", logPath, "error", err)
+		http.Error(w, "failed to read log file", http.StatusInternalServerError)
+		return
+	}
 
-	// Write directly as plain text
-	w.Write([]byte(combined))
+	// --- Read config file ---
+	configData, err := os.ReadFile(configPath)
+	if err != nil {
+		slog.Error("failed to read config file", "path", configPath, "error", err)
+		http.Error(w, "failed to read config file", http.StatusInternalServerError)
+		return
+	}
+
+	combined := fmt.Sprintf(
+		"file content: %s\n env variable: MESSAGE=%s\n %s\nPing / Pongs: %s",
+		string(configData), message, string(logData), string(body),
+	)
+
+	_, _ = w.Write([]byte(combined))
 }
