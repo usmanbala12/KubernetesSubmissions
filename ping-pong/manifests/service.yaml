@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: pingpong-svc
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: ping-pong
   ports:

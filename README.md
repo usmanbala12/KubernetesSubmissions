@@ -30,3 +30,5 @@
 
 ### chapter 4
 - [3.1](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.1/ping-pong)
+- [3.2](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.2)
+
