@@ -1,0 +1,125 @@
+name: Release application
+
+on:
+  push:
+    paths:
+      - 'todoapp/**'
+      - '.github/workflows/**'
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-north1-b
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: my-repository
+  BRANCH: ${{ github.ref_name }}
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      todo-app: ${{ steps.filter.outputs.todo-app }}
+      todo-backend: ${{ steps.filter.outputs.todo-backend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            todo-app:
+              - 'todoapp/todo-app/**'
+              - 'todoapp/manifests/deployment-app.yaml'
+            todo-backend:
+              - 'todoapp/todo-backend/**'
+              - 'todoapp/manifests/deployment-backend.yaml'
+
+  build-todo-app:
+    name: Build and Deploy Todo App
+    needs: detect-changes
+    if: needs.detect-changes.outputs.todo-app == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - run: gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
+    
+      - name: 'Get GKE credentials'
+        uses: 'google-github-actions/get-gke-credentials@v2'
+        with:
+          cluster_name: '${{ env.GKE_CLUSTER }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          location: '${{ env.GKE_ZONE }}'
+
+      - name: 'Build and Push Todo App'
+        run: |
+          IMAGE_TAG=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/todo-app:${{ env.BRANCH }}-${{ github.sha }}
+          docker build --tag $IMAGE_TAG ./todoapp/todo-app
+          docker push $IMAGE_TAG
+          echo "TODO_APP_IMAGE=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2.1.0
+
+      - name: Deploy Todo App with Kustomize
+        working-directory: ./todoapp
+        run: |
+          kustomize edit set image todo-app=${{ env.TODO_APP_IMAGE }}
+          kustomize build . | kubectl apply -f -
+          kubectl rollout status deployment/todoapp-dep -n default
+          kubectl get services -o wide
+
+  build-todo-backend:
+    name: Build and Deploy Todo Backend
+    needs: detect-changes
+    if: needs.detect-changes.outputs.todo-backend == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - run: gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
+    
+      - name: 'Get GKE credentials'
+        uses: 'google-github-actions/get-gke-credentials@v2'
+        with:
+          cluster_name: '${{ env.GKE_CLUSTER }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          location: '${{ env.GKE_ZONE }}'
+
+      - name: 'Build and Push Todo Backend'
+        run: |
+          IMAGE_TAG=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/todo-backend:${{ env.BRANCH }}-${{ github.sha }}
+          docker build --tag $IMAGE_TAG ./todoapp/todo-backend
+          docker push $IMAGE_TAG
+          echo "TODO_BACKEND_IMAGE=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2.1.0
+
+      - name: Deploy Todo Backend with Kustomize
+        working-directory: ./todoapp
+        run: |
+          kustomize edit set image todo-backend=${{ env.TODO_BACKEND_IMAGE }}
+          kustomize build . | kubectl apply -f -
+          kubectl rollout status deployment/todo-backend-dep -n default
+          kubectl get services -o wide
