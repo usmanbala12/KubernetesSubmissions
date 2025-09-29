@@ -76,9 +76,9 @@ jobs:
         working-directory: ./todoapp
         run: |
           kustomize edit set image todo-app=${{ env.TODO_APP_IMAGE }}
-          kustomize build . | kubectl apply -f -
-          kubectl rollout status deployment/todoapp-dep -n default
-          kubectl get services -o wide
+          kustomize build . | kubectl apply -f - --server-side --force-conflicts
+          kubectl rollout status deployment/todoapp-dep -n project
+          kubectl get services -o wide -n project
 
   build-todo-backend:
     name: Build and Deploy Todo Backend
@@ -120,6 +120,6 @@ jobs:
         working-directory: ./todoapp
         run: |
           kustomize edit set image todo-backend=${{ env.TODO_BACKEND_IMAGE }}
-          kustomize build . | kubectl apply -f -
-          kubectl rollout status deployment/todo-backend-dep -n default
-          kubectl get services -o wide
+          kustomize build . | kubectl apply -f - --server-side --force-conflicts
+          kubectl rollout status deployment/todo-backend-dep -n project
+          kubectl get services -o wide -n project

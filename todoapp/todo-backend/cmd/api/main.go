@@ -20,7 +20,7 @@ type application struct {
 	wg     sync.WaitGroup
 }
 
-//Trigger Github actions GKE Deployment II
+//Trigger Github actions GKE Deployment III
 
 // corsMiddleware adds CORS headers
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
