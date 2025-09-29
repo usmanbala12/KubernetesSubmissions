@@ -62,6 +62,14 @@ jobs:
           project_id: '${{ env.PROJECT_ID }}'
           location: '${{ env.GKE_ZONE }}'
 
+      - name: 'Set environment namespace'
+        run: |
+          if [ "${{ env.BRANCH }}" = "main" ]; then
+            echo "NAMESPACE=project" >> $GITHUB_ENV
+          else
+            echo "NAMESPACE=${{ env.BRANCH }}" >> $GITHUB_ENV
+          fi
+
       - name: 'Build and Push Todo App'
         run: |
           IMAGE_TAG=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/todo-app:${{ env.BRANCH }}-${{ github.sha }}
@@ -75,10 +83,13 @@ jobs:
       - name: Deploy Todo App with Kustomize
         working-directory: ./todoapp
         run: |
+          kubectl create namespace ${{ env.NAMESPACE }} || true
+          kubectl config set-context --current --namespace=${{ env.NAMESPACE }}
+          kustomize edit set namespace ${{ env.NAMESPACE }}
           kustomize edit set image todo-app=${{ env.TODO_APP_IMAGE }}
           kustomize build . | kubectl apply -f - --server-side --force-conflicts
-          kubectl rollout status deployment/todoapp-dep -n project
-          kubectl get services -o wide -n project
+          kubectl rollout status deployment/todoapp-dep -n ${{ env.NAMESPACE }}
+          kubectl get services -o wide -n ${{ env.NAMESPACE }}
 
   build-todo-backend:
     name: Build and Deploy Todo Backend
@@ -106,6 +117,14 @@ jobs:
           project_id: '${{ env.PROJECT_ID }}'
           location: '${{ env.GKE_ZONE }}'
 
+      - name: 'Set environment namespace'
+        run: |
+          if [ "${{ env.BRANCH }}" = "main" ]; then
+            echo "NAMESPACE=project" >> $GITHUB_ENV
+          else
+            echo "NAMESPACE=${{ env.BRANCH }}" >> $GITHUB_ENV
+          fi
+
       - name: 'Build and Push Todo Backend'
         run: |
           IMAGE_TAG=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/todo-backend:${{ env.BRANCH }}-${{ github.sha }}
@@ -119,7 +138,10 @@ jobs:
       - name: Deploy Todo Backend with Kustomize
         working-directory: ./todoapp
         run: |
+          kubectl create namespace ${{ env.NAMESPACE }} || true
+          kubectl config set-context --current --namespace=${{ env.NAMESPACE }}
+          kustomize edit set namespace ${{ env.NAMESPACE }}
           kustomize edit set image todo-backend=${{ env.TODO_BACKEND_IMAGE }}
           kustomize build . | kubectl apply -f - --server-side --force-conflicts
-          kubectl rollout status deployment/todo-backend-dep -n project
-          kubectl get services -o wide -n project
+          kubectl rollout status deployment/todo-backend-dep -n ${{ env.NAMESPACE }}
+          kubectl get services -o wide -n ${{ env.NAMESPACE }}
