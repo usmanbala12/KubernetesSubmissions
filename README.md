@@ -36,4 +36,80 @@
 - [3.5](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.5/todoapp)
 - [3.6](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.6/.github/workflows)
 - [3.7](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.7/.github/workflows)
+- [3.8](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.8)
+
+### 3.9. DBaaS vs DIY
+Database Deployment: DBaaS vs. Kubernetes
+1. Required Work and Cost to Initialize
+
+DBaass **Pros**
+
+* **Easy Setup:** Provision with a few clicks or an API call.
+* **Low Initial Cost:** Pay-as-you-go; no hardware or licensing fees.
+* **No Expertise Needed:** No deep DBA or infra knowledge required.
+
+**Cons**
+
+* **Higher Long-Term Cost:** More expensive at scale than self-managed.
+* **Limited Configuration:** Versions, extensions, and hardware are provider-defined.
+
+Kubernetes **Pros**
+
+* **Lower Long-Term Cost:** Can be cheaper at scale without managed-service premiums.
+* **Full Control:** Customize versions, configs, and infrastructure.
+
+**Cons**
+
+* **High Setup Effort:** Production-ready clusters with storage are complex.
+* **Expertise Required:** Requires Kubernetes, storage, and DB admin skills.
+* **Higher Upfront Cost:** Infra setup (on-prem or cloud) can be costly.
+
+2. Ongoing Maintenance
+
+DBaaS **Pros**
+
+* **Automated Maintenance:** Provider manages patches, updates, scaling.
+* **Lower Ops Load:** Team focuses on application development.
+* **Built-in Availability:** High availability and SLOs included.
+
+**Cons**
+
+* **No Control Over Timing:** Maintenance schedules may not align with your needs.
+* **Limited Troubleshooting:** Reliant on provider support with less infra visibility.
+
+Kubernetes **Pros**
+
+* **Full Maintenance Control:** You choose timing and methods.
+* **Deep Visibility:** Access all stack layers for tuning and troubleshooting.
+
+**Cons**
+
+* **Heavy Ops Burden:** Team handles updates, scaling, security, and recovery.
+* **Complex Stateful Management:** Databases are harder to run in Kubernetes.
+* **No SLA:** You must ensure uptime and disaster recovery.
+
+3. Backup Methods and Ease of Use
+
+DBaaS **Pros**
+
+* **Automated Backups:** Enabled by default on a schedule.
+* **Point-in-Time Recovery:** Restore to any second.
+* **Simple Restores:** One-click via console or API.
+* **Managed Offsite Storage:** Safe from regional outages.
+
+**Cons**
+
+* **Limited Customization:** Frequency, retention, and location may be fixed.
+* **Extra Costs:** Storage and retrieval may incur fees.
+
+Kubernetes **Pros**
+
+* **Full Flexibility:** Choose tools and strategies
+* **Cost Optimization:** Tailor strategy to minimize storage costs.
+
+**Cons**
+
+* **Complex Setup:** Automating reliable backups requires expertise.
+* **Manual Restores:** Often multi-step and error-prone.
+* **Misconfiguration Risk:** Higher chance of human error causing data loss.
 
