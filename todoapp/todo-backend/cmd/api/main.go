@@ -36,6 +36,11 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Todo App backend - OK\n")
+}
+
 // createSampleTodos creates some sample todos if the table is empty
 func (app *application) createSampleTodos() {
 	todos, err := app.store.GetAll()
@@ -82,6 +87,7 @@ func main() {
 	app.createSampleTodos()
 
 	// Set up routes
+	http.HandleFunc("/", corsMiddleware(rootHandler))
 	http.HandleFunc("/todos", corsMiddleware(app.todosHandler))
 	http.HandleFunc("/todos/", corsMiddleware(app.todosHandler))
 

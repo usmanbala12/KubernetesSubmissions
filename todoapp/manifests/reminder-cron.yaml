@@ -38,7 +38,7 @@ spec:
               curl -X POST \
                 -H "Content-Type: application/json" \
                 -d "$JSON_PAYLOAD" \
-                http://todo-backend-svc:2345/todos
+                http://todo-backend-svc:80/todos
               
               echo "Todo reminder created for: $RANDOM_URL"
           restartPolicy: OnFailure
