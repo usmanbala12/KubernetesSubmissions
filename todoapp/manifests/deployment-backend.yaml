@@ -13,7 +13,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   namespace: project
-  name: tod-backend-dep
+  name: todo-backend-dep
 spec:
   replicas: 1
   selector:
