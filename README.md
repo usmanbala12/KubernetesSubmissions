@@ -35,4 +35,5 @@
 - [3.4](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.4/ping-pong/manifests)
 - [3.5](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.5/todoapp)
 - [3.6](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.6/.github/workflows)
+- [3.7](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.7/.github/workflows)
 

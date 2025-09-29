@@ -1,0 +1,44 @@
+name: Cleanup environment
+
+on:
+  delete:
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-north1-b
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: my-repo
+
+jobs:
+  cleanup-env:
+    if: github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 'Get GKE credentials'
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: '${{ env.GKE_CLUSTER }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          location: '${{ env.GKE_ZONE }}'
+
+      - name: Delete namespace for branch
+        run: |
+          BRANCH=${GITHUB_REF_NAME}
+          if [ "$BRANCH" = "main" ]; then
+            echo "Skipping cleanup of main namespace"
+            exit 0
+          fi
+          echo "Deleting namespace $BRANCH..."
+          kubectl delete namespace $BRANCH --ignore-not-found=true
