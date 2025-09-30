@@ -1,0 +1,58 @@
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pg-backup
+  namespace: project
+  annotations:
+    iam.gke.io/gcp-service-account: "pg-backup-sa@dwk-gke-473404.iam.gserviceaccount.com"
+
+---
+# CronJob for automated backups
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup-job
+  namespace: project
+spec:
+  schedule: "0 2 * * *"  # Every day at 2am UTC
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid  # Prevent overlapping backup jobs
+  jobTemplate:
+    spec:
+      backoffLimit: 2  # Retry failed jobs twice
+      template:
+        metadata:
+          labels:
+            app: pg-backup
+        spec:
+          serviceAccountName: pg-backup
+          restartPolicy: OnFailure
+          containers:
+          - name: pg-backup
+            image: usmanusman/dwk-pg-backup:v1
+            imagePullPolicy: Always
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-url
+                  key: DATABASE_URL
+            - name: BUCKET
+              value: "gs://dwk-gke-backups"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            securityContext:
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+              runAsUser: 1000
+              capabilities:
+                drop:
+                - ALL

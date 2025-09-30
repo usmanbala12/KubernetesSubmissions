@@ -9,6 +9,7 @@ resources:
   - manifests/ingress.yaml
   - manifests/psql-stateful.yaml
   - manifests/reminder-cron.yaml
+  - pg-backup/db-backup-cron.yaml
 
 images:
   - name: todo-app

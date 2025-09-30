@@ -22,7 +22,7 @@ var (
 	staticPath     string       // static files directory
 )
 
-//Trigger Github actions GKE Deployment III
+//Trigger Github actions GKE Deployment IV
 
 func main() {
 	// Get port from environment variable, default to 8080
