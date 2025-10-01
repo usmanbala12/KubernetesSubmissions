@@ -115,3 +115,5 @@ Kubernetes **Pros**
 
 -[3.9](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.19)
 -[3.10](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.10/todoapp/pg-backup)
+-[3.11](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.11/todoapp/manifests)
+-[3.12](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.12/todoapp)

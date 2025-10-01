@@ -35,6 +35,18 @@ spec:
               secretKeyRef:
                 name: db-url
                 key: DATABASE_URL
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 15 
           resources:
             limits:
               cpu: "150m"
