@@ -113,3 +113,5 @@ Kubernetes **Pros**
 * **Manual Restores:** Often multi-step and error-prone.
 * **Misconfiguration Risk:** Higher chance of human error causing data loss.
 
+-[3.9](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.19)
+-[3.10](https://github.com/usmanbala12/KubernetesSubmissions/tree/3.10/todoapp/pg-backup)
