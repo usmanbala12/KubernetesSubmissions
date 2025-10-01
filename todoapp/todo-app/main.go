@@ -329,7 +329,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 	</div>
 
 	<script>
-		const API_BASE_URL = 'http://localhost:8081';
+		// const API_BASE_URL = 'http://localhost:8081';
 		
 		const todoInput = document.getElementById('todoInput');
 		const descriptionInput = document.getElementById('descriptionInput');
@@ -373,7 +373,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 			try {
 				todoContainer.innerHTML = '<div class="loading">Loading todos...</div>';
 				
-				const response = await fetch(API_BASE_URL + '/todos');
+				const response = await fetch('/todos');
 				if (!response.ok) {
 					throw new Error('Failed to fetch todos: ' + response.statusText);
 				}
@@ -427,7 +427,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 				sendButton.disabled = true;
 				sendButton.textContent = 'Sending...';
 
-				const response = await fetch(API_BASE_URL + '/todos', {
+				const response = await fetch('/todos', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
@@ -488,7 +488,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 		loadTodos();
 
 		// Check if backend is accessible
-		fetch(API_BASE_URL +"/health")
+		fetch("/health")
 			.then(response => {
 				if (response.ok) {
 					console.log('✅ Backend connection successful');
