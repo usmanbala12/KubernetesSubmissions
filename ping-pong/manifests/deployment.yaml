@@ -28,5 +28,9 @@ spec:
             value: "4000"
           - name: DATABASE_URL
             value: "postgresql://postgres:postgres@postgres-service:5432/postgres?sslmode=disable"
-          # - name: FILE_PATH
-          #   value: "/usr/src/app/files/pingtext"
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10

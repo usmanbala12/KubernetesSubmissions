@@ -80,6 +80,12 @@ spec:
             # Path to the config file
             - name: CONFIG_FILE_PATH
               value: "/usr/src/app/config/information.txt"
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
         - name: log-output-generator
           image: usmanusman/logoutput-generator:v2
           volumeMounts:

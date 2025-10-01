@@ -15,24 +15,21 @@ var db *sql.DB
 
 func initDB() {
 	connStr := os.Getenv("DATABASE_URL")
-
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		panic(err)
 	}
-
 	// Create table if it doesn't exist
 	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS counter (
-			id SERIAL PRIMARY KEY,
-			value BIGINT NOT NULL
-		);
-	`)
+        CREATE TABLE IF NOT EXISTS counter (
+            id SERIAL PRIMARY KEY,
+            value BIGINT NOT NULL
+        );
+    `)
 	if err != nil {
 		panic(err)
 	}
-
 	// Ensure one row exists
 	var count int
 	err = db.QueryRow("SELECT COUNT(*) FROM counter").Scan(&count)
@@ -45,30 +42,45 @@ func initDB() {
 			panic(err)
 		}
 	}
-
 	// Load current value into memory
 	err = db.QueryRow("SELECT value FROM counter WHERE id = 1").Scan(&counter)
 	if err != nil {
 		panic(err)
 	}
 }
-
 func handlePingPong(w http.ResponseWriter, r *http.Request) {
 	// increment atomically
 	newCount := atomic.AddUint64(&counter, 1)
-
 	// persist to DB
 	_, err := db.Exec("UPDATE counter SET value = $1 WHERE id = 1", newCount)
 	if err != nil {
 		http.Error(w, "DB update failed", http.StatusInternalServerError)
 		return
 	}
-
 	fmt.Fprintf(w, "pong %d", newCount)
 }
-
 func handlePings(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%d", atomic.LoadUint64(&counter))
+}
+
+// Readiness probe endpoint
+func handleReadiness(w http.ResponseWriter, r *http.Request) {
+	// Check if database connection is alive
+	if db == nil {
+		http.Error(w, "Database not initialized", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Ping the database to verify connection
+	err := db.Ping()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Database not ready: %v", err), http.StatusServiceUnavailable)
+		return
+	}
+
+	// Return 200 OK if ready
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "ready")
 }
 
 func main() {
@@ -76,12 +88,10 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-
 	initDB()
-
 	http.HandleFunc("/", handlePingPong)
 	http.HandleFunc("/pings", handlePings)
-
+	http.HandleFunc("/readiness", handleReadiness)
 	fmt.Printf("Server started on port %s\n", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		panic(err)
