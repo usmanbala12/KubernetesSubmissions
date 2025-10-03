@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -73,6 +74,30 @@ func (app *application) createTodoHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+func (app *application) updateTodoHandler(w http.ResponseWriter, r *http.Request, id int) {
+	var req UpdateTodoRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	todo, err := app.store.Update(id, req.Completed)
+	if err != nil {
+		if err.Error() == fmt.Sprintf("todo with id %d not found", id) {
+			app.notFoundResponse(w, r)
+			return
+		}
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(todo); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
 // todosHandler handles all /todos routes
 func (app *application) todosHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse ID from path if present
@@ -99,6 +124,12 @@ func (app *application) todosHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		if id == 0 {
 			app.createTodoHandler(w, r)
+		} else {
+			app.methodNotAllowedResponse(w, r)
+		}
+	case http.MethodPatch:
+		if id != 0 {
+			app.updateTodoHandler(w, r, id)
 		} else {
 			app.methodNotAllowedResponse(w, r)
 		}

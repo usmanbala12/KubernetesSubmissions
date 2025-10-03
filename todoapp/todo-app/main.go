@@ -283,6 +283,32 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 		.refresh-btn:hover {
 			background: rgba(255, 255, 255, 0.3);
 		}
+
+		.completed {
+		opacity: 0.6;
+		text-decoration: line-through;
+		}
+
+		.complete-btn {
+			background: rgba(76, 175, 80, 0.2);
+			color: #4caf50;
+			border: 1px solid rgba(76, 175, 80, 0.5);
+			padding: 0.3rem 0.6rem;
+			border-radius: 0.3rem;
+			cursor: pointer;
+			font-size: 0.8rem;
+			transition: background 0.2s;
+		}
+
+		.complete-btn:hover {
+			background: rgba(76, 175, 80, 0.4);
+		}
+
+		.complete-btn:disabled {
+			opacity: 0.4;
+			cursor: not-allowed;
+		}
+
 	</style>
 </head>
 <body>
@@ -395,11 +421,17 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 					todoItem.className = 'todo-item';
 					
 					todoItem.innerHTML =
-						'<p class="todo-text">' + escapeHtml(todo.title) + '</p>' +
+						'<p class="todo-text ' + (todo.completed ? 'completed' : '') + '">' 
+							+ escapeHtml(todo.title) + 
+						'</p>' +
 						(todo.description ? '<p class="todo-description">' + escapeHtml(todo.description) + '</p>' : '') +
 						'<div class="todo-meta">' +
 							'<span class="todo-id">#' + todo.id + '</span>' +
 							'<span>Created: ' + formatDate(todo.created_at) + '</span>' +
+							(!todo.completed 
+								? '<button class="complete-btn" onclick="markCompleted(' + todo.id + ')">✔ Mark Completed</button>'
+								: '<span>✅ Completed</span>'
+							) +
 						'</div>';
 					
 					todoList.appendChild(todoItem);
@@ -464,6 +496,29 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 				updateCharCounter(); // This will re-enable if input is valid
 			}
 		}
+
+		async function markCompleted(todoId) {
+		try {
+			const response = await fetch("/todos/" + todoId, {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({ completed: true })
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error("Failed to mark completed: " + errorText);
+			}
+
+			showMessage("Todo" + todoId + "marked as completed ✅", "success");
+			await loadTodos();
+		} catch (error) {
+			console.error("Error marking todo completed:", error);
+			showMessage("Failed to mark completed: " + error.message, "error");
+		}
+	}
 
 		function escapeHtml(text) {
 			const div = document.createElement('div');

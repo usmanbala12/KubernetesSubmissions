@@ -155,14 +155,15 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 	}))
 
-	// Kubernetes probe endpoints
 	http.HandleFunc("/readiness", app.readinessHandler)
 	http.HandleFunc("/liveness", app.livenessHandler)
+
 	port := os.Getenv("PORT")
 	fmt.Printf("Todo backend service starting on port %s\n", port)
 	fmt.Printf("Endpoints:\n")
 	fmt.Printf("  GET    /todos       - Fetch all todos\n")
 	fmt.Printf("  POST   /todos       - Create a new todo\n")
+	fmt.Printf("  PATCH  /todos/{id}  - Update todo completion status\n")
 	fmt.Printf("  GET    /health      - Health check\n")
 	fmt.Printf("  GET    /readiness   - Readiness probe\n")
 	fmt.Printf("  GET    /liveness    - Liveness probe\n")
