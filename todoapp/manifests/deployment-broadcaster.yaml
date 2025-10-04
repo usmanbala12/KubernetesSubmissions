@@ -42,7 +42,7 @@ spec:
     spec:
       containers:
         - name: broadcaster
-          image: usmanusman/broadcaster:v1
+          image: broadcaster
           env:
           - name: NATS_URL
             valueFrom:

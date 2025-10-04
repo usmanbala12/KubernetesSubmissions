@@ -13,9 +13,9 @@ resources:
   # - pg-backup/db-backup-cron.yaml
 
 images:
-  - name: usmanusman/todoapp
-    newTag: v4
-  - name: usmanusman/todo-backend
-    newTag: v6
-  - name: usmanusman/broadcaster
-    newTag: v6
+  - name: todoapp
+    newName: usmanusman/todoapp:v3
+  - name: todo-backend
+    newName: usmanusman/todo-backend:v6
+  - name: broadcaster
+    newName: usmanusman/broadcaster:v6

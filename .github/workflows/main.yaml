@@ -98,21 +98,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - run: gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
-    
-      - name: 'Get GKE credentials'
-        uses: 'google-github-actions/get-gke-credentials@v2'
-        with:
-          cluster_name: '${{ env.GKE_CLUSTER }}'
-          project_id: '${{ env.PROJECT_ID }}'
-          location: '${{ env.GKE_ZONE }}'
-
-      - name: 'Set environment namespace'
-        run: |
-          if [ "${{ env.BRANCH }}" = "main" ]; then
-            echo "NAMESPACE=project" >> $GITHUB_ENV
-          else
-            echo "NAMESPACE=${{ env.BRANCH }}" >> $GITHUB_ENV
-          fi
 
       - name: 'Build and Push Todo App'
         run: |
@@ -124,16 +109,18 @@ jobs:
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
-      - name: Deploy Todo App with Kustomize
-        working-directory: ./todoapp
+      - name: Use right image
         run: |
-          kubectl create namespace ${{ env.NAMESPACE }} || true
-          kubectl config set-context --current --namespace=${{ env.NAMESPACE }}
-          kustomize edit set namespace ${{ env.NAMESPACE }}
-          kustomize edit set image todo-app=${{ env.TODO_APP_IMAGE }}
-          kustomize build . | kubectl apply -f - --server-side --force-conflicts
-          kubectl rollout status deployment/todoapp-dep -n ${{ env.NAMESPACE }}
-          kubectl get services -o wide -n ${{ env.NAMESPACE }}
+          cd ./todoapp
+          kustomize edit set image PROJECT/IMAGE=$IMAGE_TAG
+
+      - name: commit kustomization.yaml to GitHub
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: './todoapp/kustomization.yaml'
+          message: New version released ${{ github.sha }}
+
+      
 
   build-todo-backend:
     name: Build and Deploy Todo Backend
@@ -153,21 +140,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - run: gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
-    
-      - name: 'Get GKE credentials'
-        uses: 'google-github-actions/get-gke-credentials@v2'
-        with:
-          cluster_name: '${{ env.GKE_CLUSTER }}'
-          project_id: '${{ env.PROJECT_ID }}'
-          location: '${{ env.GKE_ZONE }}'
-
-      - name: 'Set environment namespace'
-        run: |
-          if [ "${{ env.BRANCH }}" = "main" ]; then
-            echo "NAMESPACE=project" >> $GITHUB_ENV
-          else
-            echo "NAMESPACE=${{ env.BRANCH }}" >> $GITHUB_ENV
-          fi
 
       - name: 'Build and Push Todo Backend'
         run: |
@@ -179,13 +151,13 @@ jobs:
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
-      - name: Deploy Todo Backend with Kustomize
-        working-directory: ./todoapp
+      - name: Use right image
         run: |
-          kubectl create namespace ${{ env.NAMESPACE }} || true
-          kubectl config set-context --current --namespace=${{ env.NAMESPACE }}
-          kustomize edit set namespace ${{ env.NAMESPACE }}
-          kustomize edit set image todo-backend=${{ env.TODO_BACKEND_IMAGE }}
-          kustomize build . | kubectl apply -f - --server-side --force-conflicts
-          kubectl rollout status deployment/todo-backend-dep -n ${{ env.NAMESPACE }}
-          kubectl get services -o wide -n ${{ env.NAMESPACE }}
+          cd ./todoapp
+          kustomize edit set image PROJECT/IMAGE=$IMAGE_TAG
+
+      - name: commit kustomization.yaml to GitHub
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: './todoapp/kustomization.yaml'
+          message: New version released ${{ github.sha }}

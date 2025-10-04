@@ -34,7 +34,7 @@ spec:
             claimName: todoapp-pvc
       containers:
         - name: todoapp
-          image: usmanusman/todoapp:v3
+          image: todoapp
           volumeMounts:
             - name: picsum-image
               mountPath: /usr/src/app/files
