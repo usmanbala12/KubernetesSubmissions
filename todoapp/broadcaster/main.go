@@ -35,6 +35,7 @@ type Config struct {
 	HealthPort    string
 	StreamName    string
 	ConsumerName  string
+	Environment   string
 }
 
 type HealthChecker struct {
@@ -97,6 +98,7 @@ func main() {
 		HealthPort:    getEnv("PORT", "4000"),
 		StreamName:    getEnv("STREAM_NAME", "TODOS"),
 		ConsumerName:  getEnv("CONSUMER_NAME", "broadcaster"),
+		Environment:   getEnv("ENVIRONMENT", "Prod"),
 	}
 
 	if config.TelegramToken == "" {
@@ -269,14 +271,19 @@ func connectAndSubscribeJetStream(config Config, telegram *TelegramClient, healt
 			log.Printf("Processing todo event: %s - ID: %d", todoMsg.Action, todoMsg.ID)
 			message := formatTodoMessage(todoMsg)
 
-			if err := telegram.SendMessage(message); err != nil {
-				log.Printf("Error sending to Telegram: %v", err)
-				msg.Nak()
-				return
-			}
+			if config.Environment == "staging" {
+				log.Print(message)
 
-			log.Printf("Successfully sent message to Telegram")
+			} else {
+				if err := telegram.SendMessage(message); err != nil {
+					log.Printf("Error sending to Telegram: %v", err)
+					msg.Nak()
+					return
+				}
+				log.Printf("Successfully sent message to Telegram")
+			}
 			msg.Ack()
+
 		},
 		nats.Durable(config.ConsumerName),
 		nats.ManualAck(),

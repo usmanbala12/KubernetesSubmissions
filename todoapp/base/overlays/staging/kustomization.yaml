@@ -1,0 +1,26 @@
+# base/overlays/staging/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: staging
+namePrefix: staging-
+
+resources:
+  - ../..
+
+patches:
+- path: deployment-broadcaster-patch.yaml
+  target:
+    kind: Deployment
+    name: deployment-broadcaster
+
+images:
+  - name: todoapp
+    newName: europe-north1-docker.pkg.dev/YOUR_PROJECT_ID/my-repo/todo-app
+    newTag: main-latest
+  - name: todo-backend
+    newName: europe-north1-docker.pkg.dev/YOUR_PROJECT_ID/my-repo/todo-backend
+    newTag: main-latest
+  - name: broadcaster
+    newName: europe-north1-docker.pkg.dev/YOUR_PROJECT_ID/my-repo/broadcaster
+    newTag: main-latest
