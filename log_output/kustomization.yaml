@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - manifests/deployment.yaml
+  - manifests/gateway.yaml
+  - manifests/route.yaml
+  - manifests/service.yaml
+
+images:
+  - name: PROJECT/IMAGE
+    newName: usmanusman/logoutput-api:v7
+  

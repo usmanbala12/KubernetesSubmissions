@@ -56,7 +56,7 @@ spec:
               path: information.txt
       containers:
         - name: log-output-api
-          image: usmanusman/logoutput-api:v7
+          image: PROJECT/IMAGE
           ports:
             - containerPort: 4000
           volumeMounts:
