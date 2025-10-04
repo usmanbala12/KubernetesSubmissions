@@ -25,11 +25,26 @@ spec:
         app: todo-backend
     spec:
       containers:
-        - name: todoapp
+        - name: todo-backend
           image: usmanusman/todo-backend:v4
           env:
           - name: PORT
             value: "4000"
+          - name: NATS_URL
+            valueFrom:
+              configMapKeyRef:
+                name: broadcaster-config
+                key: NATS_URL
+          - name: NATS_SUBJECT
+            valueFrom:
+              configMapKeyRef:
+                name: broadcaster-config
+                key: NATS_SUBJECT
+          - name: STREAM_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: broadcaster-config
+                key: STREAM_NAME
           - name: DATABASE_URL
             valueFrom:
               secretKeyRef:

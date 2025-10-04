@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: broadcaster-config
+  namespace: project
+data:
+  NATS_URL: "nats://my-nats:4222"
+  NATS_SUBJECT: "todos.events"
+  PORT: "4000"
+  STREAM_NAME: "TODOS"
+  CONSUMER_NAME: "broadcaster"
+
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: broadcaster-secrets
+  namespace: project
+type: Opaque
+stringData:
+  TELEGRAM_BOT_TOKEN: ""
+  TELEGRAM_CHAT_ID: ""
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: project
+  name: broadcaster-dep
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: broadcaster
+  template:
+    metadata:
+      labels:
+        app: broadcaster
+    spec:
+      containers:
+        - name: broadcaster
+          image: usmanusman/broadcaster:v1
+          env:
+          - name: NATS_URL
+            valueFrom:
+              configMapKeyRef:
+                name: broadcaster-config
+                key: NATS_URL
+          - name: NATS_SUBJECT
+            valueFrom:
+              configMapKeyRef:
+                name: broadcaster-config
+                key: NATS_SUBJECT
+          - name: STREAM_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: broadcaster-config
+                key: STREAM_NAME
+          - name: CONSUMER_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: broadcaster-config
+                key: CONSUMER_NAME
+          - name: PORT
+            valueFrom:
+              configMapKeyRef:
+                name: broadcaster-config
+                key: PORT
+          - name: TELEGRAM_BOT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: broadcaster-secrets
+                key: TELEGRAM_BOT_TOKEN
+          - name: TELEGRAM_CHAT_ID
+            valueFrom:
+              secretKeyRef:
+                name: broadcaster-secrets
+                key: TELEGRAM_CHAT_ID
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 15 
+          resources:
+            limits:
+              cpu: "150m"
+              memory: "100Mi"
+          
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: broadcaster-service
+spec:
+  selector:
+    app: broadcaster
+  ports:
+  - protocol: TCP
+    port: 4000
+    targetPort: 4000
+    name: health
+  type: ClusterIP

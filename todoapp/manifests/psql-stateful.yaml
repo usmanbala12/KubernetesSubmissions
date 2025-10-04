@@ -107,22 +107,44 @@ spec:
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         volumeMounts:
-        - name: data
+        - name: postgres-storage
           mountPath: /var/lib/postgresql/data
         - name: postgres-config-volume
           mountPath: /etc/postgresql/postgresql.conf
           subPath: postgresql.conf
           readOnly: true
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
       volumes:
       - name: postgres-config-volume
         configMap:
           name: postgres-config
   volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        storageClassName: standard-rwo
-        resources:
-          requests:
-            storage: 100Mi
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard-rwo
+      resources:
+        requests:
+          storage: 100Mi

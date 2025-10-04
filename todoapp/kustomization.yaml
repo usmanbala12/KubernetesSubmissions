@@ -4,15 +4,18 @@ kind: Kustomization
 resources:
   - manifests/deployment-app.yaml
   - manifests/deployment-backend.yaml
+  - manifests/deployment-broadcaster.yaml
   - manifests/service-app.yaml
   - manifests/service-backend.yaml
   - manifests/ingress.yaml
   - manifests/psql-stateful.yaml
   - manifests/reminder-cron.yaml
-  - pg-backup/db-backup-cron.yaml
+  # - pg-backup/db-backup-cron.yaml
 
 images:
-  - name: todo-app
-    newName: todo-app
-  - name: todo-backend
-    newName: todo-backend
+  - name: usmanusman/todoapp
+    newTag: v4
+  - name: usmanusman/todo-backend
+    newTag: v6
+  - name: usmanusman/broadcaster
+    newTag: v6

@@ -1,11 +1,8 @@
-module todo-backend
+module broadcaster
 
 go 1.24.5
 
-require (
-	github.com/lib/pq v1.10.9
-	github.com/nats-io/nats.go v1.46.1
-)
+require github.com/nats-io/nats.go v1.46.1
 
 require (
 	github.com/klauspost/compress v1.18.0 // indirect

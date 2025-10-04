@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"todo-backend/internal/data"
 )
 
 type CreateTodoRequest struct {
@@ -15,6 +16,14 @@ type CreateTodoRequest struct {
 // UpdateTodoRequest represents the request body for updating a todo
 type UpdateTodoRequest struct {
 	Completed bool `json:"completed"`
+}
+
+type TodoMessage struct {
+	Action      string `json:"action"`
+	ID          int    `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Completed   bool   `json:"completed"`
 }
 
 // getTodosHandler handles GET /todos
@@ -32,7 +41,6 @@ func (app *application) getTodosHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// createTodoHandler handles POST /todos
 func (app *application) createTodoHandler(w http.ResponseWriter, r *http.Request) {
 	var req CreateTodoRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -66,6 +74,13 @@ func (app *application) createTodoHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Publish todo creation event to NATS
+	if err := app.publishTodoEvent("created", todo); err != nil {
+		// Log the error but don't fail the request
+		// You might want to use a proper logger here
+		fmt.Printf("Warning: failed to publish todo event: %v\n", err)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(todo); err != nil {
@@ -91,11 +106,45 @@ func (app *application) updateTodoHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Publish todo update event to NATS
+	if err := app.publishTodoEvent("updated", todo); err != nil {
+		// Log the error but don't fail the request
+		fmt.Printf("Warning: failed to publish todo event: %v\n", err)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(todo); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+}
+
+func (app *application) publishTodoEvent(action string, todo *data.Todo) error {
+	msg := TodoMessage{
+		Action:      action,
+		ID:          todo.ID,
+		Title:       todo.Title,
+		Description: todo.Description,
+		Completed:   todo.Completed,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal todo message: %w", err)
+	}
+
+	// Publish to NATS JetStream with acknowledgment
+	// JetStream ensures the message is persisted before returning
+	pubAck, err := app.js.Publish("todos.events", data)
+	if err != nil {
+		return fmt.Errorf("failed to publish to NATS JetStream: %w", err)
+	}
+
+	// Log successful publish with stream sequence number
+	fmt.Printf("Published todo event to JetStream: stream=%s, seq=%d\n",
+		pubAck.Stream, pubAck.Sequence)
+
+	return nil
 }
 
 // todosHandler handles all /todos routes

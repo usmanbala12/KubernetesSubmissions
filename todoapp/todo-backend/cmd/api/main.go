@@ -8,15 +8,19 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 	"todo-backend/internal/data"
 	"todo-backend/internal/jsonlog"
 
 	_ "github.com/lib/pq"
+	"github.com/nats-io/nats.go"
 )
 
 type application struct {
 	logger *jsonlog.Logger
 	store  data.TodoStore
+	nc     *nats.Conn
+	js     nats.JetStreamContext
 	wg     sync.WaitGroup
 	db     *sql.DB
 }
@@ -35,9 +39,69 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		next(w, r)
 	}
 }
+
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Todo App backend - OK\n")
+}
+
+func setupNATSWithJetStream() (*nats.Conn, nats.JetStreamContext, error) {
+	natsURL := getEnv("NATS_URL", "nats://my-nats:4222")
+
+	// Connect to NATS with connection options
+	nc, err := nats.Connect(
+		natsURL,
+		nats.MaxReconnects(-1),
+		nats.ReconnectWait(2*time.Second),
+		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
+			if err != nil {
+				log.Printf("NATS disconnected: %v", err)
+			}
+		}),
+		nats.ReconnectHandler(func(nc *nats.Conn) {
+			log.Printf("NATS reconnected to %s", nc.ConnectedUrl())
+		}),
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to NATS: %w", err)
+	}
+
+	log.Printf("Connected to NATS at %s", natsURL)
+
+	// Create JetStream context
+	js, err := nc.JetStream()
+	if err != nil {
+		nc.Close()
+		return nil, nil, fmt.Errorf("failed to create JetStream context: %w", err)
+	}
+
+	// Create stream for todo events if it doesn't exist
+	streamName := getEnv("STREAM_NAME", "TODOS")
+	streamSubject := getEnv("NATS_SUBJECT", "todos.events")
+
+	stream, err := js.StreamInfo(streamName)
+	if err != nil {
+		// Stream doesn't exist, create it
+		streamConfig := &nats.StreamConfig{
+			Name:      streamName,
+			Subjects:  []string{streamSubject},
+			Storage:   nats.FileStorage,
+			MaxAge:    24 * time.Hour,
+			Retention: nats.WorkQueuePolicy, // Messages removed after acknowledgment
+			Replicas:  1,
+		}
+
+		_, err = js.AddStream(streamConfig)
+		if err != nil {
+			nc.Close()
+			return nil, nil, fmt.Errorf("failed to create stream: %w", err)
+		}
+		log.Printf("Created JetStream stream: %s", streamName)
+	} else {
+		log.Printf("Using existing JetStream stream: %s (messages: %d)", streamName, stream.State.Msgs)
+	}
+
+	return nc, js, nil
 }
 
 // createSampleTodos creates some sample todos if the table is empty
@@ -128,9 +192,19 @@ func main() {
 	}
 	defer db.Close()
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+
+	// Connect to NATS
+	nc, js, err := setupNATSWithJetStream()
+	if err != nil {
+		log.Fatal("Failed to connect to NATS with JetStream:", err)
+	}
+	defer nc.Close()
+
 	app := &application{
 		logger: logger,
 		store:  data.NewTodoStore(db),
+		nc:     nc,
+		js:     js,
 		db:     db,
 	}
 	// Create sample todos if none exist
@@ -195,4 +269,11 @@ func InitDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to create table: %v", err)
 	}
 	return db, nil
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
