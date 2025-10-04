@@ -125,3 +125,9 @@ Kubernetes **Pros**
 -[4.5](https://github.com/usmanbala12/KubernetesSubmissions/tree/4.5/todoapp)
 -[4.6](https://github.com/usmanbala12/KubernetesSubmissions/tree/4.6/todoapp/broadcaster)
 -[4.7](https://github.com/usmanbala12/KubernetesSubmissions/tree/4.7/log_output)
+-[4.8](https://github.com/usmanbala12/KubernetesSubmissions/tree/4.8/.github/workflows)
+-[4.9](https://github.com/usmanbala12/KubernetesSubmissions/tree/4.9/todoapp)
+
+## The Project, the grande finale
+-[4.10](https://github.com/usmanbala12/dwk-project-config) - config repo
+-[4.10]()

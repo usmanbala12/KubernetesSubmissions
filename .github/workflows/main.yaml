@@ -7,19 +7,18 @@ on:
     tags:
       - 'v*'
     paths:
-      - 'todo-app/**'
-      - 'todo-backend/**'
-      - 'broadcaster/**'
-      - 'base/**'
+      - 'todoapp/todo-app/**'
+      - 'todoapp/todo-backend/**'
+      - 'todoapp/broadcaster/**'
+      - 'log_output/log_output_api/**'
       - '.github/workflows/**'
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GKE_CLUSTER: dwk-cluster
-  GKE_ZONE: europe-north1-b
   REGISTRY: europe-north1-docker.pkg.dev
   REPOSITORY: my-repo
-  BRANCH: ${{ github.ref_name }}
+  CONFIG_REPO: usmanbala12/dwk-project-config
+  CONFIG_REPO_URL: https://github.com/usmanbala12/dwk-project-config.git
 
 jobs:
   detect-changes:
@@ -97,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout
+      - name: Checkout Code Repository
         uses: actions/checkout@v4
 
       - name: Determine Image Tag and Target Overlay
@@ -128,26 +127,34 @@ jobs:
       - name: 'Build and Push Todo App'
         run: |
           IMAGE_TAG=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/todo-app:${{ env.IMAGE_TAG_NAME }}
-          docker build --tag $IMAGE_TAG ./todoapp/todo-app
+          docker build --tag $IMAGE_TAG ./todo-app
           docker push $IMAGE_TAG
-          echo "TODO_APP_IMAGE=$IMAGE_TAG" >> $GITHUB_ENV
+
+      # Checkout the config repository
+      - name: Checkout Config Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CONFIG_REPO }}
+          token: ${{ secrets.CONFIG_REPO_PAT }}
+          path: config-repo
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
-      - name: Update Overlay Kustomization with New Image
+      - name: Update Config Repository with New Image
         run: |
-          cd todoapp/base/overlays/${{ env.TARGET_OVERLAY }}
+          cd config-repo/overlays/${{ env.TARGET_OVERLAY }}
           kustomize edit set image todoapp=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/todo-app:${{ env.IMAGE_TAG_NAME }}
           cat kustomization.yaml
 
-      - name: Commit Kustomization Changes to Git
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: 'todoapp/base/overlays/${{ env.TARGET_OVERLAY }}/kustomization.yaml'
-          message: 'chore(image): Update todo-app to ${{ env.IMAGE_TAG_NAME }} in ${{ env.TARGET_OVERLAY }} [skip ci]'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          push: origin HEAD:main
+      - name: Commit and Push to Config Repository
+        run: |
+          cd config-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add overlays/${{ env.TARGET_OVERLAY }}/kustomization.yaml
+          git commit -m "chore(todo-app): Update image to ${{ env.IMAGE_TAG_NAME }} in ${{ env.TARGET_OVERLAY }}"
+          git push
 
   build-todo-backend:
     name: Build and Deploy Todo Backend
@@ -156,7 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout
+      - name: Checkout Code Repository
         uses: actions/checkout@v4
 
       - name: Determine Image Tag and Target Overlay
@@ -185,26 +192,33 @@ jobs:
       - name: 'Build and Push Todo Backend'
         run: |
           IMAGE_TAG=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/todo-backend:${{ env.IMAGE_TAG_NAME }}
-          docker build --tag $IMAGE_TAG ./todoapp/todo-backend
+          docker build --tag $IMAGE_TAG ./todo-backend
           docker push $IMAGE_TAG
-          echo "TODO_BACKEND_IMAGE=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Checkout Config Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CONFIG_REPO }}
+          token: ${{ secrets.CONFIG_REPO_PAT }}
+          path: config-repo
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
-      - name: Update Overlay Kustomization with New Image
+      - name: Update Config Repository with New Image
         run: |
-          cd todoapp/base/overlays/${{ env.TARGET_OVERLAY }}
+          cd config-repo/overlays/${{ env.TARGET_OVERLAY }}
           kustomize edit set image todo-backend=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/todo-backend:${{ env.IMAGE_TAG_NAME }}
           cat kustomization.yaml
 
-      - name: Commit Kustomization Changes to Git
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: 'todoapp/base/overlays/${{ env.TARGET_OVERLAY }}/kustomization.yaml'
-          message: 'chore(image): Update todo-backend to ${{ env.IMAGE_TAG_NAME }} in ${{ env.TARGET_OVERLAY }} [skip ci]'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          push: origin HEAD:main
+      - name: Commit and Push to Config Repository
+        run: |
+          cd config-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add overlays/${{ env.TARGET_OVERLAY }}/kustomization.yaml
+          git commit -m "chore(todo-backend): Update image to ${{ env.IMAGE_TAG_NAME }} in ${{ env.TARGET_OVERLAY }}"
+          git push
 
   build-broadcaster:
     name: Build and Deploy Broadcaster
@@ -213,7 +227,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout
+      - name: Checkout Code Repository
         uses: actions/checkout@v4
 
       - name: Determine Image Tag and Target Overlay
@@ -242,23 +256,30 @@ jobs:
       - name: 'Build and Push Broadcaster'
         run: |
           IMAGE_TAG=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/broadcaster:${{ env.IMAGE_TAG_NAME }}
-          docker build --tag $IMAGE_TAG ./todoapp/broadcaster
+          docker build --tag $IMAGE_TAG ./broadcaster
           docker push $IMAGE_TAG
-          echo "BROADCASTER_IMAGE=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Checkout Config Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CONFIG_REPO }}
+          token: ${{ secrets.CONFIG_REPO_PAT }}
+          path: config-repo
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
-      - name: Update Overlay Kustomization with New Image
+      - name: Update Config Repository with New Image
         run: |
-          cd todoapp/base/overlays/${{ env.TARGET_OVERLAY }}
+          cd config-repo/overlays/${{ env.TARGET_OVERLAY }}
           kustomize edit set image broadcaster=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/broadcaster:${{ env.IMAGE_TAG_NAME }}
           cat kustomization.yaml
 
-      - name: Commit Kustomization Changes to Git
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: 'todoapp/base/overlays/${{ env.TARGET_OVERLAY }}/kustomization.yaml'
-          message: 'chore(image): Update broadcaster to ${{ env.IMAGE_TAG_NAME }} in ${{ env.TARGET_OVERLAY }} [skip ci]'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          push: origin HEAD:main
+      - name: Commit and Push to Config Repository
+        run: |
+          cd config-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add overlays/${{ env.TARGET_OVERLAY }}/kustomization.yaml
+          git commit -m "chore(broadcaster): Update image to ${{ env.IMAGE_TAG_NAME }} in ${{ env.TARGET_OVERLAY }}"
+          git push
