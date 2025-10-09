@@ -1,0 +1,7 @@
+apiVersion: codegeek.com/v1
+kind: DummySite
+metadata:
+  name: dummysite-demo
+  namespace: default
+spec:
+  website_url: "https://www.wikipedia.org/"
