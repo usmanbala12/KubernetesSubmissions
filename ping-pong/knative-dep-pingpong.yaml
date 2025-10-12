@@ -1,0 +1,30 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ping-pong
+spec:
+  template:
+    spec:
+      volumes:
+        - name: logtext
+          persistentVolumeClaim:
+            claimName: log-claim
+      containers:
+        - name: ping-pong
+          image: usmanusman/pingpong:v7
+          ports:
+            - containerPort: 4000
+          volumeMounts:
+            - name: logtext
+              mountPath: /usr/src/app/files
+          env:
+            - name: PORT
+              value: "4000"
+            - name: DATABASE_URL
+              value: "postgresql://postgres:postgres@postgres-service:5432/postgres?sslmode=disable"
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
