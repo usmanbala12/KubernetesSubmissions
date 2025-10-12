@@ -132,3 +132,4 @@ Kubernetes **Pros**
 -[4.10](https://github.com/usmanbala12/dwk-project-config) - config repo
 -[4.10](https://github.com/usmanbala12/KubernetesSubmissions/tree/4.10)
 -[5.1](https://github.com/usmanbala12/KubernetesSubmissions/tree/5.1/dummysite)
+-[5.2](https://github.com/usmanbala12/KubernetesSubmissions/tree/5.2/istio-getting-started)

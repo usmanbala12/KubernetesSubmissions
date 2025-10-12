@@ -70,20 +70,26 @@ func readinessHandler(w http.ResponseWriter, r *http.Request) {
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
+
+	// --- Resolve environment paths ---
 	logPath := os.Getenv("LOG_PATH")
 	if logPath == "" {
 		logPath = "../logoutput.txt"
 	}
+
 	configPath := os.Getenv("CONFIG_FILE_PATH")
 	if configPath == "" {
 		configPath = "../information.txt"
 	}
+
 	message := os.Getenv("MESSAGE")
+
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
+
 	// --- Call pingpong service ---
-	resp, err := client.Get("http://pingpong-svc:80/pings")
+	pingpongResp, err := client.Get("http://pingpong-svc:80/pings")
 	if err != nil {
 		slog.Error("failed to call pingpong service",
 			"error", err,
@@ -93,20 +99,51 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to reach pingpong service", http.StatusBadGateway)
 		return
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	defer pingpongResp.Body.Close()
+
+	if pingpongResp.StatusCode != http.StatusOK {
 		slog.Warn("unexpected response from pingpong service",
-			"status", resp.StatusCode,
+			"status", pingpongResp.StatusCode,
 		)
-		http.Error(w, fmt.Sprintf("unexpected status: %d", resp.StatusCode), resp.StatusCode)
+		http.Error(w, fmt.Sprintf("unexpected status from pingpong: %d", pingpongResp.StatusCode), pingpongResp.StatusCode)
 		return
 	}
-	body, err := io.ReadAll(resp.Body)
+
+	pingpongBody, err := io.ReadAll(pingpongResp.Body)
 	if err != nil {
 		slog.Error("failed to read pingpong response", "error", err)
-		http.Error(w, "failed to read response", http.StatusInternalServerError)
+		http.Error(w, "failed to read pingpong response", http.StatusInternalServerError)
 		return
 	}
+
+	// --- Call greeter service ---
+	greeterResp, err := client.Get("http://greeter-svc:80")
+	if err != nil {
+		slog.Error("failed to call greeter service",
+			"error", err,
+			"service", "greeter-svc",
+			"url", "http://greeter-svc:80",
+		)
+		http.Error(w, "failed to reach greeter service", http.StatusBadGateway)
+		return
+	}
+	defer greeterResp.Body.Close()
+
+	if greeterResp.StatusCode != http.StatusOK {
+		slog.Warn("unexpected response from greeter service",
+			"status", greeterResp.StatusCode,
+		)
+		http.Error(w, fmt.Sprintf("unexpected status from greeter: %d", greeterResp.StatusCode), greeterResp.StatusCode)
+		return
+	}
+
+	greeterBody, err := io.ReadAll(greeterResp.Body)
+	if err != nil {
+		slog.Error("failed to read greeter response", "error", err)
+		http.Error(w, "failed to read greeter response", http.StatusInternalServerError)
+		return
+	}
+
 	// --- Read log file ---
 	logData, err := os.ReadFile(logPath)
 	if err != nil {
@@ -114,6 +151,7 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to read log file", http.StatusInternalServerError)
 		return
 	}
+
 	// --- Read config file ---
 	configData, err := os.ReadFile(configPath)
 	if err != nil {
@@ -121,9 +159,16 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to read config file", http.StatusInternalServerError)
 		return
 	}
+
+	// --- Combine output ---
 	combined := fmt.Sprintf(
-		"file content: %s\n env variable: MESSAGE=%s\n %s\nPing / Pongs: %s",
-		string(configData), message, string(logData), string(body),
+		"Config file content: %s\nMessage (env): %s\nLog file content:\n%s\nPing/Pongs: %s\nGreetings: %s\n",
+		string(configData),
+		message,
+		string(logData),
+		string(pingpongBody),
+		string(greeterBody),
 	)
+
 	_, _ = w.Write([]byte(combined))
 }

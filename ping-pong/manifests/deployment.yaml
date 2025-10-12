@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ping-pong-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ping-pong
+  template:
+    metadata:
+      labels:
+        app: ping-pong
+    spec:
+      volumes:
+        - name: logtext
+          persistentVolumeClaim:
+            claimName: log-claim
+      containers:
+        - name: ping-pong
+          image: usmanusman/pingpong:v7
+          volumeMounts:
+            - name: logtext
+              mountPath: /usr/src/app/files
+          env:
+          - name: PORT
+            value: "4000"
+          - name: DATABASE_URL
+            value: "postgresql://postgres:postgres@postgres-service:5432/postgres?sslmode=disable"
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10

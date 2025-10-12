@@ -1,13 +1,19 @@
-apiVersion: gateway.networking.k8s.io/v1beta1
+apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: my-gateway
+  name: logoutput-gateway
+  annotations:
+    # Reduce resource requests for the Gateway pod
+    gateway.istio.io/cpu-request: "10m"
+    gateway.istio.io/memory-request: "64Mi"
+    gateway.istio.io/cpu-limit: "500m"
+    gateway.istio.io/memory-limit: "256Mi"
 spec:
-  gatewayClassName: gke-l7-global-external-managed
+  gatewayClassName: istio
   listeners:
   - name: http
-    protocol: HTTP
     port: 80
+    protocol: HTTP
     allowedRoutes:
-      kinds:
-      - kind: HTTPRoute
+      namespaces:
+        from: Same
