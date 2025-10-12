@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wiki-scripts
+data:
+  sidecar.sh: |
+    #!/bin/sh
+    while true; do
+      # Random wait between 5 and 15 minutes (300-900 seconds)
+      WAIT_TIME=$((300 + RANDOM % 600))
+      echo "Waiting for $WAIT_TIME seconds before fetching next random page..."
+      sleep $WAIT_TIME
+      
+      echo "Fetching random Wikipedia page..."
+      curl -L -o /usr/share/nginx/html/index.html https://en.wikipedia.org/wiki/Special:Random
+      echo "Random page updated at $(date)"
+    done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wikipedia-server
+  labels:
+    app: wikipedia-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wikipedia-server
+  template:
+    metadata:
+      labels:
+        app: wikipedia-server
+    spec:
+      # Shared volume between containers
+      volumes:
+      - name: web-content
+        emptyDir: {}
+      - name: scripts
+        configMap:
+          name: wiki-scripts
+          defaultMode: 0755
+      
+      # Init container to fetch initial Kubernetes page
+      initContainers:
+      - name: fetch-initial-page
+        image: curlimages/curl:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Fetching initial Kubernetes Wikipedia page..."
+          curl -L -o /web-content/index.html https://en.wikipedia.org/wiki/Kubernetes
+          echo "Initial page fetched successfully"
+        volumeMounts:
+        - name: web-content
+          mountPath: /web-content
+      
+      # Main nginx container
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: web-content
+          mountPath: /usr/share/nginx/html
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+      
+      # Sidecar container for random page updates
+      - name: random-page-updater
+        image: curlimages/curl:latest
+        command:
+        - sh
+        - /scripts/sidecar.sh
+        volumeMounts:
+        - name: web-content
+          mountPath: /usr/share/nginx/html
+        - name: scripts
+          mountPath: /scripts
+        resources:
+          requests:
+            memory: "16Mi"
+            cpu: "5m"
+          limits:
+            memory: "32Mi"
+            cpu: "25m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wikipedia-server
+  labels:
+    app: wikipedia-server
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: wikipedia-server
